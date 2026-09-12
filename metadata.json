@@ -1,0 +1,6 @@
+{
+  "name": "MorphoMix",
+  "description": "Haute Couture AI Live Mirror, editorial moodboard curator, digital wardrobe atelier, and real-time vision styling intelligence.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
