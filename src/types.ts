@@ -33,6 +33,26 @@ export interface WardrobeItem {
   description: string;
   composition: string;
   careLabel: string;
+  source?: 'mirror_scan' | 'atelier_archive';
+  scannedAt?: string;
+  snapshotUrl?: string;
+}
+
+export interface DetectedGarment {
+  id?: string;
+  name: string;
+  category: 'tops' | 'trousers' | 'outerwear' | 'accessories';
+  material: string;
+  colorName: string;
+  colorHex: string;
+  gsm: number;
+  drapeType: 'Liquid Fluid' | 'Rigid Structured' | 'Architectural' | 'Voluminous Crepe' | 'Cascading Silk';
+  price?: string;
+  description: string;
+  composition: string;
+  careLabel: string;
+  imageUrl?: string;
+  snapshotUrl?: string;
 }
 
 export interface StylistVerdict {

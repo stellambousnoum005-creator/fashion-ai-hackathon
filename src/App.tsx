@@ -104,6 +104,30 @@ export default function App() {
     setSavedLooks((prev) => prev.filter((l) => l.id !== lookId));
   };
 
+  // Stock a single scanned item to wardrobe
+  const handleStockSingleItem = (item: WardrobeItem) => {
+    setWardrobe((prev) => {
+      const exists = prev.some((w) => w.id === item.id);
+      if (exists) {
+        return prev.map((w) => (w.id === item.id ? item : w));
+      }
+      return [item, ...prev];
+    });
+  };
+
+  // Stock multiple scanned garments at once to wardrobe
+  const handleStockItemsToWardrobe = (items: WardrobeItem[]) => {
+    setWardrobe((prev) => {
+      const existingIds = new Set(prev.map((w) => w.id));
+      const newItems = items.filter((item) => !existingIds.has(item.id));
+      return [...newItems, ...prev];
+    });
+  };
+
+  const handleDeleteWardrobeItem = (itemId: string) => {
+    setWardrobe((prev) => prev.filter((item) => item.id !== itemId));
+  };
+
   return (
     <div className="min-h-screen bg-[#131315] text-[#e5e1e4] flex flex-col selection:bg-[#e2b87e] selection:text-[#442b00] font-sans">
       {/* Fixed Luxury Top Header */}
@@ -125,6 +149,9 @@ export default function App() {
             onReanalyze={handleReanalyze}
             isAnalyzing={isAnalyzing}
             onSaveLook={handleSaveLook}
+            onStockSingleItem={handleStockSingleItem}
+            onStockItemsToWardrobe={handleStockItemsToWardrobe}
+            onNavigateToWardrobe={() => setActiveTab('wardrobe')}
           />
         )}
 
@@ -141,6 +168,8 @@ export default function App() {
           <WardrobeView
             wardrobe={wardrobe}
             onToggleItem={handleToggleWardrobeItem}
+            onNavigateToMirror={() => setActiveTab('mirror')}
+            onDeleteItem={handleDeleteWardrobeItem}
           />
         )}
 

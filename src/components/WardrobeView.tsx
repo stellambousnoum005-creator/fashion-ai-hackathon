@@ -4,41 +4,63 @@ import { WardrobeItem } from '../types';
 interface WardrobeViewProps {
   wardrobe: WardrobeItem[];
   onToggleItem: (id: string) => void;
+  onNavigateToMirror?: () => void;
+  onDeleteItem?: (id: string) => void;
 }
 
 export const WardrobeView: React.FC<WardrobeViewProps> = ({
   wardrobe,
   onToggleItem,
+  onNavigateToMirror,
+  onDeleteItem,
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [inspectingItem, setInspectingItem] = useState<WardrobeItem | null>(null);
   const [splitPosition, setSplitPosition] = useState<number>(50);
+  const [previewSnapshot, setPreviewSnapshot] = useState<string | null>(null);
+
+  const scannedCount = wardrobe.filter((i) => i.source === 'mirror_scan').length;
 
   const categories = [
-    { id: 'all', label: 'All Silhouettes' },
-    { id: 'tops', label: 'Tops & Blouses' },
-    { id: 'trousers', label: 'Tailored Trousers' },
-    { id: 'outerwear', label: 'Coats & Trenches' },
+    { id: 'all', label: 'All Silhouettes', count: wardrobe.length },
+    { id: 'scanned', label: `Mirror Scans (${scannedCount})`, count: scannedCount },
+    { id: 'tops', label: 'Tops & Blouses', count: wardrobe.filter((i) => i.category === 'tops').length },
+    { id: 'trousers', label: 'Tailored Trousers', count: wardrobe.filter((i) => i.category === 'trousers').length },
+    { id: 'outerwear', label: 'Coats & Trenches', count: wardrobe.filter((i) => i.category === 'outerwear').length },
   ];
 
-  const filteredItems = wardrobe.filter((item) =>
-    selectedCategory === 'all' ? true : item.category === selectedCategory
-  );
+  const filteredItems = wardrobe.filter((item) => {
+    if (selectedCategory === 'all') return true;
+    if (selectedCategory === 'scanned') return item.source === 'mirror_scan';
+    return item.category === selectedCategory;
+  });
 
   return (
     <div className="flex flex-col w-full max-w-2xl mx-auto space-y-6 pb-6">
       {/* Header & Subtitle */}
-      <div className="flex flex-col space-y-1">
+      <div className="flex flex-col space-y-2">
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-serif font-bold text-[#e5e1e4] tracking-tight">
             Digital Wardrobe Atelier
           </h2>
-          <div className="px-3 py-1 rounded-full bg-[#1c1b1d] border border-[#ffd499]/30 text-xs font-mono text-[#ffd499]">
-            {wardrobe.filter((i) => i.activeInLook).length} EQUIPPED
+          <div className="flex items-center gap-2">
+            {onNavigateToMirror && (
+              <button
+                onClick={onNavigateToMirror}
+                className="py-1.5 px-3 rounded-full bg-[#3a2a14] hover:bg-[#4a3a24] text-[#ffd499] border border-[#ffd499]/40 text-xs font-semibold flex items-center gap-1.5 transition-all active:scale-95 shadow-sm cursor-pointer"
+                title="Open Mirror camera to analyze and stock more clothes"
+              >
+                <span className="material-symbols-outlined text-[16px]">videocam</span>
+                <span>Scan New Clothes</span>
+              </button>
+            )}
+            <div className="px-3 py-1 rounded-full bg-[#1c1b1d] border border-[#ffd499]/30 text-xs font-mono text-[#ffd499]">
+              {wardrobe.filter((i) => i.activeInLook).length} EQUIPPED
+            </div>
           </div>
         </div>
         <p className="text-xs text-[#a1a1aa] leading-relaxed">
-          Archival garments and bespoke pattern pieces available for real-time live synthesis and drape simulation.
+          Archival garments and AI-scanned clothing items available for real-time live synthesis, drape simulation, and fitting.
         </p>
       </div>
 
@@ -48,27 +70,57 @@ export const WardrobeView: React.FC<WardrobeViewProps> = ({
           <button
             key={cat.id}
             onClick={() => setSelectedCategory(cat.id)}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all border ${
+            className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all border flex items-center gap-1.5 cursor-pointer ${
               selectedCategory === cat.id
                 ? 'bg-[#e2b87e] text-[#442b00] border-[#e2b87e] shadow-[0_0_12px_rgba(226,184,126,0.3)]'
                 : 'bg-[#18181f] text-[#a1a1aa] border-[#27272a] hover:text-[#e5e1e4]'
             }`}
           >
-            {cat.label}
+            {cat.id === 'scanned' && (
+              <span className="material-symbols-outlined text-[14px]">auto_awesome</span>
+            )}
+            <span>{cat.label}</span>
           </button>
         ))}
       </div>
+
+      {/* Empty State when no items match */}
+      {filteredItems.length === 0 && (
+        <div className="p-8 rounded-2xl bg-[#18181f]/70 border border-[#3f3f46]/40 flex flex-col items-center justify-center text-center space-y-3 my-4">
+          <div className="w-12 h-12 rounded-full bg-[#3a2a14] text-[#ffd499] flex items-center justify-center border border-[#ffd499]/30">
+            <span className="material-symbols-outlined text-[24px]">checkroom</span>
+          </div>
+          <h4 className="text-base font-serif font-bold text-[#e5e1e4]">
+            {selectedCategory === 'scanned' ? 'No Scanned Clothes Yet' : 'No Garments Found'}
+          </h4>
+          <p className="text-xs text-[#a1a1aa] max-w-sm">
+            {selectedCategory === 'scanned'
+              ? 'Use the Live Mirror feature with your camera feed or runway model to detect your clothes and stock them here.'
+              : 'Try selecting another category or scan new pieces from the mirror.'}
+          </p>
+          {onNavigateToMirror && (
+            <button
+              onClick={onNavigateToMirror}
+              className="mt-2 py-2 px-4 rounded-full bg-[#e2b87e] text-[#442b00] font-bold text-xs flex items-center gap-2 shadow-md hover:bg-[#ffd499] transition-all cursor-pointer active:scale-95"
+            >
+              <span className="material-symbols-outlined text-[16px]">videocam</span>
+              <span>Go to Mirror & Scan Clothes</span>
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Wardrobe Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {filteredItems.map((item) => {
           const isEquipped = item.activeInLook;
+          const isScanned = item.source === 'mirror_scan';
 
           return (
             <div
               key={item.id}
               id={`wardrobe-card-${item.id}`}
-              className={`rounded-2xl bg-[#18181f]/90 backdrop-blur-xl border transition-all duration-300 p-4 flex flex-col justify-between space-y-4 shadow-xl ${
+              className={`rounded-2xl bg-[#18181f]/90 backdrop-blur-xl border transition-all duration-300 p-4 flex flex-col justify-between space-y-4 shadow-xl relative ${
                 isEquipped
                   ? 'border-[#e2b87e]/80 shadow-[0_0_20px_rgba(226,184,126,0.15)]'
                   : 'border-[#27272a] hover:border-[#3f3f46]'
@@ -90,13 +142,21 @@ export const WardrobeView: React.FC<WardrobeViewProps> = ({
                     {item.code} • {item.material}
                   </div>
 
-                  {/* Equipped status chip */}
-                  {isEquipped && (
-                    <div className="absolute top-2.5 right-2.5 px-2.5 py-1 rounded-full bg-[#e2b87e] text-[#442b00] text-[10px] font-bold flex items-center gap-1 shadow-md">
-                      <span className="material-symbols-outlined text-[12px]">check</span>
-                      ACTIVE IN LOOK
-                    </div>
-                  )}
+                  {/* AI Scanned badge or Equipped status */}
+                  <div className="absolute top-2.5 right-2.5 flex flex-col items-end gap-1">
+                    {isScanned && (
+                      <span className="px-2 py-0.5 rounded-full bg-[#62259b]/90 text-[#e9d5ff] border border-[#ddb8ff]/40 text-[9px] font-mono font-bold flex items-center gap-1 shadow-sm">
+                        <span className="material-symbols-outlined text-[11px]">auto_awesome</span>
+                        AI SCANNED
+                      </span>
+                    )}
+                    {isEquipped && (
+                      <div className="px-2.5 py-1 rounded-full bg-[#e2b87e] text-[#442b00] text-[10px] font-bold flex items-center gap-1 shadow-md">
+                        <span className="material-symbols-outlined text-[12px]">check</span>
+                        ACTIVE IN LOOK
+                      </div>
+                    )}
+                  </div>
 
                   {/* Fabric GSM and Drape badge */}
                   <div className="absolute bottom-2.5 inset-x-2.5 flex items-center justify-between text-[10px] font-mono text-[#e5e1e4] bg-[#0e0e10]/70 backdrop-blur-md px-2.5 py-1 rounded-lg">
@@ -115,6 +175,11 @@ export const WardrobeView: React.FC<WardrobeViewProps> = ({
                       {item.price}
                     </span>
                   </div>
+                  {item.scannedAt && (
+                    <span className="text-[10px] font-mono text-[#ffd499]/80 block mt-0.5">
+                      Captured: {item.scannedAt}
+                    </span>
+                  )}
                   <p className="text-xs text-[#a1a1aa] mt-1 line-clamp-2 leading-relaxed">
                     {item.description}
                   </p>
@@ -125,7 +190,7 @@ export const WardrobeView: React.FC<WardrobeViewProps> = ({
               <div className="flex items-center gap-2 pt-2 border-t border-[#27272a]">
                 <button
                   onClick={() => setInspectingItem(item)}
-                  className="flex-1 py-2 px-3 rounded-full bg-[#201f22] hover:bg-[#2a2a2c] text-[#e5e1e4] hover:text-[#ffd499] text-xs font-semibold transition-all border border-[#3f3f46]/40 flex items-center justify-center gap-1.5"
+                  className="flex-1 py-2 px-3 rounded-full bg-[#201f22] hover:bg-[#2a2a2c] text-[#e5e1e4] hover:text-[#ffd499] text-xs font-semibold transition-all border border-[#3f3f46]/40 flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <span className="material-symbols-outlined text-[16px]">visibility</span>
                   <span>Inspect Drape</span>
@@ -133,7 +198,7 @@ export const WardrobeView: React.FC<WardrobeViewProps> = ({
 
                 <button
                   onClick={() => onToggleItem(item.id)}
-                  className={`flex-1 py-2 px-3 rounded-full text-xs font-semibold transition-all flex items-center justify-center gap-1.5 ${
+                  className={`flex-1 py-2 px-3 rounded-full text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                     isEquipped
                       ? 'bg-[#3a2a14] text-[#ffd499] border border-[#ffd499]/60 hover:bg-[#4a3a24]'
                       : 'bg-[#ffd499] text-[#442b00] hover:bg-[#e2b87e] shadow-md'
@@ -144,6 +209,16 @@ export const WardrobeView: React.FC<WardrobeViewProps> = ({
                   </span>
                   <span>{isEquipped ? 'Equipped' : 'Equip to Look'}</span>
                 </button>
+
+                {onDeleteItem && isScanned && (
+                  <button
+                    onClick={() => onDeleteItem(item.id)}
+                    className="w-8 h-8 rounded-full bg-[#201f22] hover:bg-[#93000a]/30 text-[#a1a1aa] hover:text-[#ffb4ab] border border-[#3f3f46]/40 hover:border-[#ffb4ab]/40 flex items-center justify-center transition-all cursor-pointer shrink-0"
+                    title="Remove scanned item from wardrobe"
+                  >
+                    <span className="material-symbols-outlined text-[15px]">delete</span>
+                  </button>
+                )}
               </div>
             </div>
           );

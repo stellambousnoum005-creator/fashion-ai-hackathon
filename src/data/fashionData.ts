@@ -11,6 +11,27 @@ export const ASSETS = {
   onyxTailored: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBokzHaAPMW2FTI_luysyJBZFALFuG-k8UjL583oM1YTqe3ZFpL78WePxUqfCVhF5NDo0vAElKCHpsjT3-9B0VLv0h55FdeXYoKWzlfWZYBN_cftIptKr3FBD6T6xnxem7UDvtxbnLV8IvNejJ3yiC4hpxTVXsqt9_mC4UoJVAoVeRqFRV5hXMiXjWREvUMTpF--riKfrIRnMz7F29bMEWfHVFzwSlKpI_1k4KTtdSfZzsTjUdXwhIv',
   drapeTrench: 'https://images.unsplash.com/photo-1544441893-675973e31985?q=80&w=800&auto=format&fit=crop',
   blazerCad: 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?q=80&w=800&auto=format&fit=crop',
+  categoryImages: {
+    tops: [
+      'https://lh3.googleusercontent.com/aida-public/AB6AXuDaWD0dxRE6rIecJa67VY2mpKpvRhjx5tai9RGmqPYncsZUhNIYLkCibeHWauKy__jyafnIm1BAToN56l-ZtsEsFEEJziCKFCAX5OZ30CqgX88RdFTKNBm1_WzS7ql9vdB7JHkFNoEKr_44fOaR3DEH_JJ-xXf7Pt6m-NtMVD4S_5ZR3s5TDfZVtNwPFPzGr_EK08AJz8qPaai14wg-wW-oM9jCbcOIQE5Llv9ntNmwQLc9Et-XYrAa',
+      'https://images.unsplash.com/photo-1598033129183-c4f50c736f10?q=80&w=800&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1551803091-e20673f15770?q=80&w=800&auto=format&fit=crop',
+    ],
+    trousers: [
+      'https://lh3.googleusercontent.com/aida-public/AB6AXuBokzHaAPMW2FTI_luysyJBZFALFuG-k8UjL583oM1YTqe3ZFpL78WePxUqfCVhF5NDo0vAElKCHpsjT3-9B0VLv0h55FdeXYoKWzlfWZYBN_cftIptKr3FBD6T6xnxem7UDvtxbnLV8IvNejJ3yiC4hpxTVXsqt9_mC4UoJVAoVeRqFRV5hXMiXjWREvUMTpF--riKfrIRnMz7F29bMEWfHVFzwSlKpI_1k4KTtdSfZzsTjUdXwhIv',
+      'https://images.unsplash.com/photo-1509631179647-0177331693ae?q=80&w=800&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1584370848010-d7fe6bc767ec?q=80&w=800&auto=format&fit=crop',
+    ],
+    outerwear: [
+      'https://images.unsplash.com/photo-1544441893-675973e31985?q=80&w=800&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?q=80&w=800&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=800&auto=format&fit=crop',
+    ],
+    accessories: [
+      'https://images.unsplash.com/photo-1584917865442-de89df76afd3?q=80&w=800&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1608256246200-53e635b5b65f?q=80&w=800&auto=format&fit=crop',
+    ],
+  },
 };
 
 export const INITIAL_INSPIRATIONS: Inspiration[] = [
