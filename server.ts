@@ -4,6 +4,14 @@ import { fileURLToPath } from 'url';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
+import {
+  createVonageSession,
+  sendVonageSignal,
+  getVonageConnections,
+  startVonageArchive,
+  getVonageServiceStatus,
+  getVonageCredentials,
+} from './server/vonage';
 
 dotenv.config();
 
@@ -27,10 +35,66 @@ function getGemini(): GoogleGenAI | null {
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
+  const vonageCreds = getVonageCredentials();
   res.json({
     status: 'ok',
     hasGeminiKey: Boolean(process.env.GEMINI_API_KEY),
+    hasVonageKey: vonageCreds.isConfigured,
+    vonageApplicationId: vonageCreds.applicationId,
   });
+});
+
+// Vonage Video API endpoints (based on Vonage Video OpenAPI 3.0.3)
+app.get('/api/vonage/status', (req, res) => {
+  res.json(getVonageServiceStatus());
+});
+
+app.post('/api/vonage/session', async (req, res) => {
+  try {
+    const session = await createVonageSession(req.body);
+    res.json(session);
+  } catch (error: any) {
+    console.error('Vonage session creation failed:', error);
+    res.status(500).json({ success: false, error: error?.message });
+  }
+});
+
+app.post('/api/vonage/signal', async (req, res) => {
+  try {
+    const { type, data, sessionId, connectionId } = req.body;
+    if (!type || data === undefined) {
+      return res.status(400).json({
+        code: 400,
+        message: 'One of the signal properties — data, type, sessionId or connectionId — is invalid.',
+      });
+    }
+    const result = await sendVonageSignal({ type, data, sessionId, connectionId });
+    res.json(result);
+  } catch (error: any) {
+    console.error('Vonage signal delivery error:', error);
+    res.status(500).json({ success: false, error: error?.message });
+  }
+});
+
+app.get('/api/vonage/connections', async (req, res) => {
+  try {
+    const sessionId = req.query.sessionId as string;
+    const connections = await getVonageConnections(sessionId);
+    res.json(connections);
+  } catch (error: any) {
+    console.error('Vonage connection listing error:', error);
+    res.status(500).json({ success: false, error: error?.message });
+  }
+});
+
+app.post('/api/vonage/archive', async (req, res) => {
+  try {
+    const archive = await startVonageArchive(req.body);
+    res.json(archive);
+  } catch (error: any) {
+    console.error('Vonage archive creation error:', error);
+    res.status(500).json({ success: false, error: error?.message });
+  }
 });
 
 // Real-time garment detection & wardrobe stocking endpoint
@@ -124,6 +188,18 @@ Return ONLY valid JSON matching this schema:
         if (text) {
           const parsed = JSON.parse(text);
           if (parsed && Array.isArray(parsed.detectedItems) && parsed.detectedItems.length > 0) {
+            // Broadcast garment scan event via Vonage Video Signaling API
+            sendVonageSignal({
+              type: 'clothes_scanned',
+              data: JSON.stringify({
+                event: 'GARMENT_DETECTED',
+                garmentCount: parsed.detectedItems.length,
+                garments: parsed.detectedItems.map((g: any) => ({ name: g.name, category: g.category })),
+                aestheticMatch: parsed.aestheticMatchPercent || 92,
+                timestamp: new Date().toISOString(),
+              }),
+            }).catch((sigErr) => console.warn('Vonage signal non-fatal error:', sigErr));
+
             return res.json({
               success: true,
               engine: 'gemini-3.8-flash-vision',
@@ -276,6 +352,18 @@ Return ONLY valid JSON matching this schema:
     };
 
     const chosen = fallbackPresets[feedMode] || fallbackPresets.webcam;
+
+    // Broadcast fallback garment scan event via Vonage Video Signaling API
+    sendVonageSignal({
+      type: 'clothes_scanned',
+      data: JSON.stringify({
+        event: 'GARMENT_DETECTED',
+        garmentCount: chosen.detectedItems.length,
+        garments: chosen.detectedItems.map((g: any) => ({ name: g.name, category: g.category })),
+        aestheticMatch: chosen.aestheticMatchPercent || 90,
+        timestamp: new Date().toISOString(),
+      }),
+    }).catch(() => {});
 
     res.json({
       success: true,

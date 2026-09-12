@@ -502,7 +502,7 @@ export const MirrorView: React.FC<MirrorViewProps> = ({
         {/* Top Viewport Control Bar */}
         <div className="relative z-10 flex flex-col gap-2 w-full">
           <div className="flex items-center justify-between w-full">
-            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-[#0e0e10]/85 backdrop-blur-xl border border-[#3f3f46]/40 shadow-lg">
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#0e0e10]/85 backdrop-blur-xl border border-[#3f3f46]/40 shadow-lg">
               <span
                 className={`w-2 h-2 rounded-full ${
                   feedMode === 'webcam' ? 'bg-[#22c55e] animate-pulse' : 'bg-[#ffb4ab] animate-ping'
@@ -510,6 +510,9 @@ export const MirrorView: React.FC<MirrorViewProps> = ({
               />
               <span className="font-mono text-[11px] text-[#e5e1e4] uppercase tracking-wider font-semibold">
                 {feedMode === 'webcam' ? 'LIVE WEBCAM MIRROR' : 'RUNWAY MODEL FEED'}
+              </span>
+              <span className="text-[9px] font-mono uppercase px-1.5 py-0.5 rounded bg-[#0e273a] text-[#38bdf8] border border-[#38bdf8]/30 font-bold ml-1">
+                VONAGE
               </span>
             </div>
 

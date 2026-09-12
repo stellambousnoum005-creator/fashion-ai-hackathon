@@ -88,6 +88,22 @@ export const ScanWardrobeModal: React.FC<ScanWardrobeModalProps> = ({
     const wardrobeItem = convertToWardrobeItem(garment, index);
     onStockItem(wardrobeItem);
 
+    // Broadcast wardrobe item stocking via Vonage Video Signal
+    fetch('/api/vonage/signal', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'wardrobe_stocked',
+        data: JSON.stringify({
+          action: 'STOCK_SINGLE',
+          item: garment.name,
+          category: garment.category,
+          material: garment.material,
+          timestamp: new Date().toISOString(),
+        }),
+      }),
+    }).catch(() => {});
+
     setStockedIds((prev) => new Set(prev).add(key));
     setJustStockedMessage(`“${garment.name}” stocked in Wardrobe!`);
     setTimeout(() => setJustStockedMessage(null), 3000);
@@ -108,6 +124,22 @@ export const ScanWardrobeModal: React.FC<ScanWardrobeModalProps> = ({
     if (itemsToStock.length > 0) {
       onStockAll(itemsToStock);
       setStockedIds(newStockedIds);
+
+      // Broadcast all stocked items via Vonage Video Signal
+      fetch('/api/vonage/signal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'wardrobe_stocked',
+          data: JSON.stringify({
+            action: 'STOCK_ALL',
+            count: itemsToStock.length,
+            items: itemsToStock.map((i) => i.name),
+            timestamp: new Date().toISOString(),
+          }),
+        }),
+      }).catch(() => {});
+
       setJustStockedMessage(`All ${itemsToStock.length} garment(s) successfully stocked to your Wardrobe!`);
       setTimeout(() => setJustStockedMessage(null), 3500);
     }

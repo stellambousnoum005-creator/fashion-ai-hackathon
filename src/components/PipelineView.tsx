@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { PipelineConfig } from '../types';
+import React, { useState, useEffect } from 'react';
+import { PipelineConfig, VonageStatus } from '../types';
 
 interface PipelineViewProps {
   config: PipelineConfig;
@@ -12,6 +12,81 @@ export const PipelineView: React.FC<PipelineViewProps> = ({
 }) => {
   const [techPackCopied, setTechPackCopied] = useState(false);
   const [showTechPackModal, setShowTechPackModal] = useState(false);
+  const [vonageStatus, setVonageStatus] = useState<VonageStatus | null>(null);
+  const [isSendingSignal, setIsSendingSignal] = useState(false);
+  const [signalSuccessMsg, setSignalSuccessMsg] = useState<string | null>(null);
+  const [isRefreshingSession, setIsRefreshingSession] = useState(false);
+
+  // Load Vonage Video API status
+  const fetchVonageStatus = async () => {
+    try {
+      const res = await fetch('/api/vonage/status');
+      if (res.ok) {
+        const data = await res.json();
+        setVonageStatus(data);
+      }
+    } catch (e) {
+      console.warn('Could not fetch Vonage status:', e);
+    }
+  };
+
+  useEffect(() => {
+    fetchVonageStatus();
+    const interval = setInterval(fetchVonageStatus, 6000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleSendTestSignal = async () => {
+    setIsSendingSignal(true);
+    try {
+      const res = await fetch('/api/vonage/signal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'couture_telemetry_ping',
+          data: JSON.stringify({
+            event: 'MIRROR_TELEMETRY_PING',
+            timestamp: new Date().toISOString(),
+            resolution: config.resolution,
+            model: config.activeModel,
+            loraWeight: config.loraWeight,
+          }),
+        }),
+      });
+      if (res.ok) {
+        setSignalSuccessMsg('Signal dispatched successfully to Vonage Video session!');
+        fetchVonageStatus();
+        setTimeout(() => setSignalSuccessMsg(null), 3500);
+      }
+    } catch (err: any) {
+      console.warn('Signal test failed:', err);
+    } finally {
+      setIsSendingSignal(false);
+    }
+  };
+
+  const handleCreateNewSession = async () => {
+    setIsRefreshingSession(true);
+    try {
+      const res = await fetch('/api/vonage/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          archiveMode: 'manual',
+          p2pPreference: 'disabled',
+        }),
+      });
+      if (res.ok) {
+        setSignalSuccessMsg('New Vonage Video session created & locked to mirror!');
+        fetchVonageStatus();
+        setTimeout(() => setSignalSuccessMsg(null), 3500);
+      }
+    } catch (e) {
+      console.warn('Failed creating new Vonage session:', e);
+    } finally {
+      setIsRefreshingSession(false);
+    }
+  };
 
   const pipelineStages = [
     {
@@ -258,11 +333,172 @@ export const PipelineView: React.FC<PipelineViewProps> = ({
           <button
             onClick={() => setShowTechPackModal(true)}
             id="exportTechPackBtn"
-            className="px-4 py-2 rounded-full bg-[#ffd499] text-[#442b00] text-xs font-semibold hover:bg-[#e2b87e] transition-all flex items-center gap-1.5 shadow-[0_0_16px_rgba(226,184,126,0.3)]"
+            className="px-4 py-2 rounded-full bg-[#ffd499] text-[#442b00] text-xs font-semibold hover:bg-[#e2b87e] transition-all flex items-center gap-1.5 shadow-[0_0_16px_rgba(226,184,126,0.3)] cursor-pointer"
           >
             <span className="material-symbols-outlined text-[16px]">data_object</span>
             <span>Inspect Tech Pack</span>
           </button>
+        </div>
+      </div>
+
+      {/* Vonage Video API Real-Time Ingest & Signaling Hub */}
+      <div className="p-5 rounded-2xl bg-[#18181f]/95 border border-[#38bdf8]/40 shadow-xl space-y-4">
+        <div className="flex items-center justify-between border-b border-[#27272a] pb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-[#0e273a] text-[#38bdf8] flex items-center justify-center border border-[#38bdf8]/30">
+              <span className="material-symbols-outlined text-[18px]">videocam</span>
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-[#e5e1e4] uppercase font-mono tracking-wider">
+                  Vonage Video API Ingest & Signaling
+                </h3>
+                <span className="px-2 py-0.5 rounded-full bg-[#38bdf8]/15 text-[#38bdf8] text-[9px] font-mono uppercase font-bold border border-[#38bdf8]/30">
+                  OpenAPI v0.3.2
+                </span>
+              </div>
+              <p className="text-[11px] text-[#a1a1aa]">
+                WebRTC session management, garment detection signaling, and fashion archives
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#0e0e10] border border-[#27272a] font-mono text-[10px]">
+            <span
+              className={`w-2 h-2 rounded-full ${
+                vonageStatus?.isConfigured ? 'bg-[#22c55e] animate-pulse' : 'bg-[#e2b87e]'
+              }`}
+            />
+            <span className={vonageStatus?.isConfigured ? 'text-[#22c55e]' : 'text-[#ffd499]'}>
+              {vonageStatus?.isConfigured ? 'VONAGE LIVE' : 'SANDBOX / LOCAL'}
+            </span>
+          </div>
+        </div>
+
+        {/* Signal Status banner */}
+        {signalSuccessMsg && (
+          <div className="p-2.5 rounded-xl bg-[#0f2e24] border border-[#22c55e]/40 text-xs text-[#86efac] flex items-center gap-2">
+            <span className="material-symbols-outlined text-[16px]">check_circle</span>
+            <span>{signalSuccessMsg}</span>
+          </div>
+        )}
+
+        {/* Session Metadata Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 font-mono text-xs">
+          <div className="p-3 rounded-xl bg-[#0e0e10] border border-[#27272a] space-y-1">
+            <span className="text-[10px] text-[#a1a1aa] uppercase tracking-wider block">
+              Active Vonage Session ID
+            </span>
+            <span className="text-[#ffd499] break-all select-all font-semibold block text-[11px]">
+              {vonageStatus?.activeSessionId || '2_MX4xMDBfjE0Mzc2NzY1NDgwMTJ-TjMzfn4'}
+            </span>
+          </div>
+
+          <div className="p-3 rounded-xl bg-[#0e0e10] border border-[#27272a] space-y-1">
+            <span className="text-[10px] text-[#a1a1aa] uppercase tracking-wider block">
+              Vonage Application ID
+            </span>
+            <span className="text-[#b2e1ff] break-all select-all font-semibold block text-[11px]">
+              {vonageStatus?.applicationId || '93e36bb9-b72c-45b6-a9ea-5c37dbc49906'}
+            </span>
+          </div>
+        </div>
+
+        {/* OpenAPI 3.0.3 Endpoints Reference */}
+        <div className="p-3 rounded-xl bg-[#0e0e10]/80 border border-[#27272a] space-y-2">
+          <div className="flex items-center justify-between text-[11px] font-mono text-[#d2c4b5]">
+            <span className="font-semibold uppercase tracking-wider text-[10px] text-[#ffd499]">
+              Bound Vonage Video REST Endpoints
+            </span>
+            <span className="text-[#a1a1aa] text-[10px]">https://video.api.vonage.com</span>
+          </div>
+          <div className="space-y-1 text-[11px] font-mono text-[#a1a1aa]">
+            <div className="flex items-center justify-between py-0.5 border-b border-[#1f1f23]">
+              <span className="text-[#38bdf8]">POST /session/create</span>
+              <span>Session Initializer (archiveMode=manual)</span>
+            </div>
+            <div className="flex items-center justify-between py-0.5 border-b border-[#1f1f23]">
+              <span className="text-[#38bdf8]">POST /v2/project/.../signal</span>
+              <span>Wearer Garments & Telemetry Broadcast</span>
+            </div>
+            <div className="flex items-center justify-between py-0.5 border-b border-[#1f1f23]">
+              <span className="text-[#38bdf8]">GET /v2/project/.../connection</span>
+              <span>Connected Studio Displays & Clients</span>
+            </div>
+            <div className="flex items-center justify-between py-0.5">
+              <span className="text-[#38bdf8]">POST /v2/project/.../archive</span>
+              <span>Haute Couture Runway MP4 Recording</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Real-time Vonage Signals Log */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-mono uppercase font-bold text-[#d2c4b5] tracking-wider">
+              Signal Stream Monitor (Real-Time Garment Detection)
+            </span>
+            <span className="text-[10px] font-mono text-[#a1a1aa]">
+              {vonageStatus?.recentSignals?.length || 0} Events Recorded
+            </span>
+          </div>
+
+          <div className="rounded-xl bg-[#0e0e10] p-3 border border-[#27272a] max-h-36 overflow-y-auto space-y-1.5 font-mono text-[10px]">
+            {vonageStatus?.recentSignals && vonageStatus.recentSignals.length > 0 ? (
+              vonageStatus.recentSignals.map((sig) => (
+                <div
+                  key={sig.id}
+                  className="flex items-center justify-between p-1.5 rounded bg-[#18181f]/80 border border-[#27272a]"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#38bdf8]" />
+                    <span className="text-[#ffd499] font-bold">{sig.type}</span>
+                    <span className="text-[#a1a1aa] truncate max-w-xs">{sig.data}</span>
+                  </div>
+                  <span className="text-[#64748b] shrink-0 text-[9px]">
+                    {new Date(sig.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                  </span>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-3 text-[#71717a]">
+                No signals yet. Tap "Scan Clothes to Wardrobe" in the Mirror to broadcast garment detections.
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Action Controls */}
+        <div className="pt-2 flex flex-wrap items-center justify-between gap-2 border-t border-[#27272a]">
+          <span className="text-[11px] text-[#a1a1aa]">
+            Configured in <code className="text-[#ffd499]">.env</code>: <code className="text-[#b2e1ff]">VONAGE_APPLICATION_ID</code> & <code className="text-[#b2e1ff]">VONAGE_JWT</code>
+          </span>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleCreateNewSession}
+              disabled={isRefreshingSession}
+              className="px-3 py-1.5 rounded-full bg-[#201f22] text-[#e5e1e4] text-xs font-mono font-semibold hover:bg-[#2a2a2c] transition-all flex items-center gap-1 border border-[#3f3f46] cursor-pointer disabled:opacity-60"
+              title="Create new Vonage Video session via /session/create"
+            >
+              <span className={`material-symbols-outlined text-[14px] ${isRefreshingSession ? 'animate-spin' : ''}`}>
+                refresh
+              </span>
+              <span>New Session</span>
+            </button>
+
+            <button
+              onClick={handleSendTestSignal}
+              disabled={isSendingSignal}
+              className="px-3.5 py-1.5 rounded-full bg-[#0e273a] text-[#38bdf8] text-xs font-mono font-semibold hover:bg-[#12334d] transition-all flex items-center gap-1.5 border border-[#38bdf8]/40 shadow-sm cursor-pointer disabled:opacity-60"
+              title="Send a live test signal via /v2/project/.../signal"
+            >
+              <span className={`material-symbols-outlined text-[14px] ${isSendingSignal ? 'animate-spin' : ''}`}>
+                cell_tower
+              </span>
+              <span>{isSendingSignal ? 'Transmitting...' : 'Broadcast Test Signal'}</span>
+            </button>
+          </div>
         </div>
       </div>
 

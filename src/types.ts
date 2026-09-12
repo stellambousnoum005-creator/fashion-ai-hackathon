@@ -92,3 +92,20 @@ export interface PipelineConfig {
   fps: number;
   latentFitConfidence: number;
 }
+
+export interface VonageStatus {
+  isConfigured: boolean;
+  applicationId: string;
+  serverUrl: string;
+  openapiVersion: string;
+  activeSessionId: string;
+  recentSignals: VonageSignalEvent[];
+}
+
+export interface VonageSignalEvent {
+  id: string;
+  timestamp: string;
+  type: string;
+  data: string;
+  status: 'delivered' | 'simulated' | 'failed';
+}
